@@ -1,0 +1,67 @@
+// Prisma schema for Eat Ticker.
+//
+// The `provider` below is patched automatically by scripts/set-db-provider.mjs
+// based on the DATABASE_PROVIDER env var:
+//   - local dev  -> "sqlite"      (DATABASE_PROVIDER unset, DATABASE_URL="file:./dev.db")
+//   - production -> "postgresql"  (DATABASE_PROVIDER=postgresql, DATABASE_URL=<neon url>)
+//
+// The model bodies deliberately avoid Postgres-only features (enums, arrays) so
+// the exact same schema compiles against both databases.
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Employee {
+  id         String   @id @default(cuid())
+  name       String
+  department String?
+  category   String // "Boss" | "Manager" | "Staff"
+  priority   Int
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  assignments MealAssignment[]
+
+  @@index([active])
+  @@index([priority])
+}
+
+model Meal {
+  id        String   @id @default(cuid())
+  date      DateTime // normalized to 00:00:00 UTC for the meal's day
+  mealType  String // "Lunch" | "Dinner"
+  createdAt DateTime @default(now())
+
+  assignments MealAssignment[]
+
+  @@unique([date, mealType])
+  @@index([date])
+}
+
+model MealAssignment {
+  id         String  @id @default(cuid())
+  mealId     String
+  employeeId String? // null for one-off guests
+
+  // Snapshot fields: captured at save time so historical records stay accurate
+  // even if the underlying employee is later edited or deleted.
+  name       String
+  category   String // "Boss" | "Manager" | "Staff" | "Guest"
+  priority   Int
+  isGuest    Boolean @default(false)
+  diningRoom Int
+
+  createdAt DateTime @default(now())
+
+  meal     Meal      @relation(fields: [mealId], references: [id], onDelete: Cascade)
+  employee Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+
+  @@index([mealId])
+  @@index([employeeId])
+}

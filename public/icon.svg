@@ -1,0 +1,10 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="112" fill="#0A0A0A"/>
+  <g stroke="#FAFAFA" stroke-width="26" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- Fork -->
+    <path d="M188 150 V210 a28 28 0 0 1 -56 0 V150"/>
+    <path d="M160 150 V362"/>
+    <!-- Knife -->
+    <path d="M338 150 c40 30 40 120 0 150 h0 V362"/>
+  </g>
+</svg>
