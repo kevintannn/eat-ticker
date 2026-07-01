@@ -48,7 +48,7 @@ function NavLinks({ pathname }: { pathname: string }) {
 
 function Brand() {
   return (
-    <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
+    <Link href="/db" className="flex items-center gap-2 font-semibold tracking-tight">
       <span className="flex size-7 items-center justify-center rounded-lg bg-foreground text-background">
         <UtensilsCrossed className="size-4" />
       </span>

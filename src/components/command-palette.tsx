@@ -63,7 +63,7 @@ export function CommandPalette({ controller }: { controller: PaletteController }
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
         <CommandGroup heading="Navigation">
-          <CommandItem onSelect={() => run(() => router.push("/"))}>
+          <CommandItem onSelect={() => run(() => router.push("/db"))}>
             <LayoutDashboard className="size-4" />
             Dashboard
           </CommandItem>

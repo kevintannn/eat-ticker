@@ -15,7 +15,7 @@ export function DeleteMealButton({ id }: { id: string }) {
     const res = await deleteMeal(id);
     if (res.ok) {
       toast.success("Meal deleted");
-      router.push("/");
+      router.push("/db");
     } else {
       toast.error(res.error ?? "Failed to delete");
     }

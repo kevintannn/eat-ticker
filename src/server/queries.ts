@@ -124,17 +124,25 @@ export async function getMealSummaries(filter: MealFilter = {}): Promise<MealSum
   });
 }
 
-export async function getMealDetail(id: string) {
-  const meal = await prisma.meal.findUnique({
-    where: { id },
-    include: {
-      assignments: {
-        orderBy: [{ diningRoom: "asc" }, { priority: "asc" }, { name: "asc" }],
-      },
-    },
-  });
-  if (!meal) return null;
+interface AssignmentRow {
+  id: string;
+  name: string;
+  category: string;
+  priority: number;
+  isGuest: boolean;
+  diningRoom: number;
+}
 
+interface MealWithAssignments {
+  id: string;
+  date: Date;
+  mealType: string;
+  createdAt: Date;
+  assignments: AssignmentRow[];
+}
+
+/** Shape a meal (with assignments) into a room-grouped detail object. */
+function mapMealToDetail(meal: MealWithAssignments) {
   const roomNumbers = [...new Set(meal.assignments.map((a) => a.diningRoom))].sort((a, b) => a - b);
   const rooms = roomNumbers.map((room) => {
     const diners = meal.assignments.filter((a) => a.diningRoom === room);
@@ -161,7 +169,34 @@ export async function getMealDetail(id: string) {
   };
 }
 
+export async function getMealDetail(id: string) {
+  const meal = await prisma.meal.findUnique({
+    where: { id },
+    include: {
+      assignments: {
+        orderBy: [{ diningRoom: "asc" }, { priority: "asc" }, { name: "asc" }],
+      },
+    },
+  });
+  if (!meal) return null;
+  return mapMealToDetail(meal);
+}
+
 export type MealDetail = NonNullable<Awaited<ReturnType<typeof getMealDetail>>>;
+
+/** The N most recently saved meals (any date/type), with full room breakdown. */
+export async function getRecentMealDetails(limit = 2): Promise<MealDetail[]> {
+  const meals = await prisma.meal.findMany({
+    orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+    take: limit,
+    include: {
+      assignments: {
+        orderBy: [{ diningRoom: "asc" }, { priority: "asc" }, { name: "asc" }],
+      },
+    },
+  });
+  return meals.map(mapMealToDetail);
+}
 
 /** Today's saved meals keyed by type, for the dashboard summary cards. */
 export async function getTodayMeals(dateKey: string) {

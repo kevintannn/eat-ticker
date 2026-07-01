@@ -25,7 +25,7 @@ export async function createEmployee(input: unknown): Promise<ActionResult<{ id:
   const employee = await prisma.employee.create({ data: parsed.data });
   revalidatePath("/employees");
   revalidatePath("/meal");
-  revalidatePath("/");
+  revalidatePath("/db");
   return { ok: true, data: { id: employee.id } };
 }
 
@@ -41,7 +41,7 @@ export async function updateEmployee(id: string, input: unknown): Promise<Action
   }
   revalidatePath("/employees");
   revalidatePath("/meal");
-  revalidatePath("/");
+  revalidatePath("/db");
   return { ok: true };
 }
 
@@ -53,7 +53,7 @@ export async function deleteEmployee(id: string): Promise<ActionResult> {
   }
   revalidatePath("/employees");
   revalidatePath("/meal");
-  revalidatePath("/");
+  revalidatePath("/db");
   return { ok: true };
 }
 
@@ -65,7 +65,7 @@ export async function setEmployeeActive(id: string, active: boolean): Promise<Ac
   }
   revalidatePath("/employees");
   revalidatePath("/meal");
-  revalidatePath("/");
+  revalidatePath("/db");
   return { ok: true };
 }
 
@@ -132,8 +132,8 @@ export async function saveMeal(input: unknown): Promise<ActionResult<{ id: strin
   });
 
   revalidatePath("/");
+  revalidatePath("/db");
   revalidatePath("/meal");
-  revalidatePath("/dashboard");
   return { ok: true, data: { id: meal.id } };
 }
 
@@ -165,6 +165,6 @@ export async function deleteMeal(id: string): Promise<ActionResult> {
     return { ok: false, error: "Meal not found" };
   }
   revalidatePath("/");
-  revalidatePath("/dashboard");
+  revalidatePath("/db");
   return { ok: true };
 }

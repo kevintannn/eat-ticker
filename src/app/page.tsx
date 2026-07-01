@@ -1,104 +1,121 @@
-import { Moon, Sun, Users, UserCheck } from "lucide-react";
+import { UtensilsCrossed } from "lucide-react";
 
-import {
-  getChartData,
-  getEmployeeCounts,
-  getEmployees,
-  getMealSummaries,
-  getTodayMeals,
-  type MealFilter,
-} from "@/server/queries";
-import { todayKey } from "@/lib/date";
-import type { EmployeeCategory, MealType } from "@/lib/constants";
-
-import { PageHeader } from "@/components/page-header";
-import { StatCard } from "@/components/stat-card";
-import { DashboardCharts } from "./dashboard-charts";
-import { HistoryTable } from "./history-table";
+import { getRecentMealDetails, type MealDetail } from "@/server/queries";
+import { formatDate } from "@/lib/date";
+import { DINER_CATEGORIES, ROOM_CAPACITY, type DinerCategory } from "@/lib/constants";
+import { CategoryBadge } from "@/components/category-badge";
+import { AutoRefresh } from "@/components/auto-refresh";
+import { LiveClock } from "@/components/live-clock";
 
 export const dynamic = "force-dynamic";
 
-interface DashboardPageProps {
-  searchParams: Promise<{
-    date?: string;
-    mealType?: string;
-    category?: string;
-    employeeId?: string;
-  }>;
-}
-
-export default async function DashboardPage({ searchParams }: DashboardPageProps) {
-  const sp = await searchParams;
-  const filter: MealFilter = {
-    date: sp.date || undefined,
-    mealType: (sp.mealType as MealType | undefined) || undefined,
-    category: (sp.category as EmployeeCategory | "Guest" | undefined) || undefined,
-    employeeId: sp.employeeId || undefined,
-  };
-
-  const today = todayKey();
-  const [counts, todayMeals, chartData, meals, employees] = await Promise.all([
-    getEmployeeCounts(),
-    getTodayMeals(today),
-    getChartData(),
-    getMealSummaries(filter),
-    getEmployees(),
-  ]);
-
+function RoomCard({ room }: { room: MealDetail["rooms"][number] }) {
   return (
-    <>
-      <PageHeader
-        title="Dashboard"
-        description="Attendance overview and dining history at a glance."
-      />
-
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard
-          label="Today's Lunch"
-          value={todayMeals.Lunch ? todayMeals.Lunch.total : "—"}
-          hint={todayMeals.Lunch ? `${todayMeals.Lunch.roomsUsed} rooms` : "not planned"}
-          icon={Sun}
-        />
-        <StatCard
-          label="Today's Dinner"
-          value={todayMeals.Dinner ? todayMeals.Dinner.total : "—"}
-          hint={todayMeals.Dinner ? `${todayMeals.Dinner.roomsUsed} rooms` : "not planned"}
-          icon={Moon}
-        />
-        <StatCard label="Total Employees" value={counts.total} icon={Users} />
-        <StatCard
-          label="Active Employees"
-          value={counts.active}
-          hint={`${counts.total - counts.active} inactive`}
-          icon={UserCheck}
-        />
+    <div className="overflow-hidden rounded-2xl border bg-card">
+      <div className="flex items-center justify-between border-b px-5 py-3.5">
+        <div className="flex items-center gap-3">
+          <span className="flex size-9 items-center justify-center rounded-lg bg-foreground text-base font-semibold text-background">
+            {room.room}
+          </span>
+          <span className="text-lg font-semibold">Dining Room {room.room}</span>
+        </div>
+        <span className="font-mono text-lg font-semibold tabular-nums text-muted-foreground">
+          {room.diners.length} / {ROOM_CAPACITY}
+        </span>
       </div>
 
-      {/* Charts */}
-      <section className="mt-8">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Analytics
-        </h2>
-        <DashboardCharts data={chartData} />
-      </section>
+      <div className="flex flex-wrap gap-2 border-b px-5 py-3">
+        {DINER_CATEGORIES.map((cat) =>
+          room.counts[cat] > 0 ? (
+            <span key={cat} className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <CategoryBadge category={cat} className="px-2 py-0.5" />
+              <span className="font-mono font-semibold tabular-nums">{room.counts[cat]}</span>
+            </span>
+          ) : null,
+        )}
+      </div>
 
-      {/* History */}
-      <section className="mt-8">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Meal history
-        </h2>
-        <HistoryTable
-          meals={meals}
-          employees={employees}
-          filters={{
-            date: filter.date ?? "",
-            mealType: (filter.mealType as string) ?? "All",
-            category: (filter.category as string) ?? "All",
-            employeeId: filter.employeeId ?? "All",
-          }}
-        />
-      </section>
-    </>
+      <ul className="grid grid-cols-1 gap-x-6 gap-y-1 px-5 py-4 sm:grid-cols-2">
+        {room.diners.map((d) => (
+          <li key={d.id} className="flex items-baseline justify-between gap-2 py-1">
+            <span className="truncate text-base font-medium">{d.name}</span>
+            <CategoryBadge
+              category={d.category as DinerCategory}
+              className="shrink-0 px-1.5 py-0 text-[10px]"
+            />
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function MealBoard({ meal }: { meal: MealDetail }) {
+  return (
+    <section className="space-y-4">
+      <div className="flex flex-wrap items-end justify-between gap-3 border-b pb-4">
+        <div>
+          <h2 className="text-3xl font-semibold tracking-tight">{meal.mealType}</h2>
+          <p className="text-sm text-muted-foreground">{formatDate(meal.date)}</p>
+        </div>
+        <div className="flex items-center gap-8">
+          <div className="text-right">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              People
+            </p>
+            <p className="font-mono text-4xl font-semibold tabular-nums">{meal.total}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Rooms
+            </p>
+            <p className="font-mono text-4xl font-semibold tabular-nums">{meal.rooms.length}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
+        {meal.rooms.map((room) => (
+          <RoomCard key={room.room} room={room} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export default async function KitchenPage() {
+  const meals = await getRecentMealDetails(2);
+
+  return (
+    <div className="min-h-screen">
+      <AutoRefresh />
+
+      <header className="sticky top-0 z-10 flex items-center justify-between border-b bg-background/85 px-6 py-4 backdrop-blur md:px-10">
+        <div className="flex items-center gap-2.5 font-semibold tracking-tight">
+          <span className="flex size-8 items-center justify-center rounded-lg bg-foreground text-background">
+            <UtensilsCrossed className="size-4" />
+          </span>
+          <span className="text-lg">Eat Ticker</span>
+          <span className="ml-1 rounded-md bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">
+            Kitchen
+          </span>
+        </div>
+        <LiveClock />
+      </header>
+
+      <main className="mx-auto w-full max-w-7xl space-y-10 px-6 py-8 md:px-10 md:py-10">
+        {meals.length === 0 ? (
+          <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 text-center">
+            <UtensilsCrossed className="size-8 text-muted-foreground" />
+            <p className="text-lg font-medium">No meals planned yet</p>
+            <p className="text-sm text-muted-foreground">
+              Saved meal plans will appear here automatically.
+            </p>
+          </div>
+        ) : (
+          meals.map((meal) => <MealBoard key={meal.id} meal={meal} />)
+        )}
+      </main>
+    </div>
   );
 }

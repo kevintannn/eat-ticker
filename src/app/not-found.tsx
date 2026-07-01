@@ -10,7 +10,7 @@ export default function NotFound() {
       <p className="max-w-sm text-sm text-muted-foreground">
         The page or meal record you&apos;re looking for doesn&apos;t exist.
       </p>
-      <Button render={<Link href="/" />}>Back to dashboard</Button>
+      <Button render={<Link href="/db" />}>Back to dashboard</Button>
     </div>
   );
 }

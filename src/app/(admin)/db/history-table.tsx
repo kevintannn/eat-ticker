@@ -53,7 +53,7 @@ export function HistoryTable({ meals, employees, filters }: HistoryTableProps) {
     if (next.category && next.category !== "All") params.set("category", next.category);
     if (next.employeeId && next.employeeId !== "All") params.set("employeeId", next.employeeId);
     const qs = params.toString();
-    startTransition(() => router.replace(qs ? `/?${qs}` : "/", { scroll: false }));
+    startTransition(() => router.replace(qs ? `/db?${qs}` : "/db", { scroll: false }));
   }
 
   const hasFilters =
