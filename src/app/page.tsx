@@ -1,4 +1,5 @@
-import { UtensilsCrossed } from "lucide-react";
+import Link from "next/link";
+import { Lock, UtensilsCrossed } from "lucide-react";
 
 import { getRecentMealDetails, type MealDetail } from "@/server/queries";
 import { formatDate } from "@/lib/date";
@@ -100,7 +101,15 @@ export default async function KitchenPage() {
             Kitchen
           </span>
         </div>
-        <LiveClock />
+        <div className="flex items-center gap-4">
+          <LiveClock />
+          <Link
+            href="/db"
+            className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          >
+            <Lock className="size-3.5" /> Admin
+          </Link>
+        </div>
       </header>
 
       <main className="mx-auto w-full max-w-7xl space-y-10 px-6 py-8 md:px-10 md:py-10">

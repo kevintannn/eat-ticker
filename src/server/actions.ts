@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 
 import { prisma } from "@/lib/prisma";
 import { assignDiningRooms } from "@/lib/assignment";
@@ -8,6 +9,8 @@ import { GUEST_PRIORITY } from "@/lib/constants";
 import { dateKeyToUTC } from "@/lib/date";
 import type { Diner } from "@/lib/types";
 import { employeeSchema, saveMealSchema } from "@/lib/validators";
+import { ADMIN_COOKIE, computeToken } from "@/lib/auth";
+import { isAuthed } from "@/server/auth";
 
 export interface ActionResult<T = undefined> {
   ok: boolean;
@@ -15,9 +18,41 @@ export interface ActionResult<T = undefined> {
   data?: T;
 }
 
+/** Reject mutations from a locked session (defends against direct action calls). */
+async function ensureAuthed(): Promise<ActionResult<never> | null> {
+  if (await isAuthed()) return null;
+  return { ok: false, error: "Unauthorized. Enter the admin PIN first." };
+}
+
+// --- Admin PIN gate ----------------------------------------------------------
+
+export async function unlockAdmin(pin: string): Promise<ActionResult> {
+  const expected = process.env.ADMIN_PIN;
+  if (!expected) return { ok: false, error: "Admin PIN is not configured on the server." };
+  if (pin !== expected) return { ok: false, error: "Incorrect PIN." };
+
+  const store = await cookies();
+  store.set(ADMIN_COOKIE, await computeToken(expected), {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 30, // 30 days
+  });
+  return { ok: true };
+}
+
+export async function lockAdmin(): Promise<ActionResult> {
+  const store = await cookies();
+  store.delete(ADMIN_COOKIE);
+  return { ok: true };
+}
+
 // --- Employees ---------------------------------------------------------------
 
 export async function createEmployee(input: unknown): Promise<ActionResult<{ id: string }>> {
+  const denied = await ensureAuthed();
+  if (denied) return denied;
   const parsed = employeeSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
@@ -30,6 +65,8 @@ export async function createEmployee(input: unknown): Promise<ActionResult<{ id:
 }
 
 export async function updateEmployee(id: string, input: unknown): Promise<ActionResult> {
+  const denied = await ensureAuthed();
+  if (denied) return denied;
   const parsed = employeeSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
@@ -46,6 +83,8 @@ export async function updateEmployee(id: string, input: unknown): Promise<Action
 }
 
 export async function deleteEmployee(id: string): Promise<ActionResult> {
+  const denied = await ensureAuthed();
+  if (denied) return denied;
   try {
     await prisma.employee.delete({ where: { id } });
   } catch {
@@ -58,6 +97,8 @@ export async function deleteEmployee(id: string): Promise<ActionResult> {
 }
 
 export async function setEmployeeActive(id: string, active: boolean): Promise<ActionResult> {
+  const denied = await ensureAuthed();
+  if (denied) return denied;
   try {
     await prisma.employee.update({ where: { id }, data: { active } });
   } catch {
@@ -72,6 +113,8 @@ export async function setEmployeeActive(id: string, active: boolean): Promise<Ac
 // --- Meals -------------------------------------------------------------------
 
 export async function saveMeal(input: unknown): Promise<ActionResult<{ id: string }>> {
+  const denied = await ensureAuthed();
+  if (denied) return denied;
   const parsed = saveMealSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
@@ -159,6 +202,8 @@ export async function loadMealSelection(
 }
 
 export async function deleteMeal(id: string): Promise<ActionResult> {
+  const denied = await ensureAuthed();
+  if (denied) return denied;
   try {
     await prisma.meal.delete({ where: { id } });
   } catch {

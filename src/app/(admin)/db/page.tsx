@@ -10,11 +10,13 @@ import {
 } from "@/server/queries";
 import { todayKey } from "@/lib/date";
 import type { EmployeeCategory, MealType } from "@/lib/constants";
+import { isAuthed } from "@/server/auth";
 
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { DashboardCharts } from "./dashboard-charts";
 import { HistoryTable } from "./history-table";
+import { PinGate } from "./pin-gate";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +30,8 @@ interface DashboardPageProps {
 }
 
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
+  if (!(await isAuthed())) return <PinGate />;
+
   const sp = await searchParams;
   const filter: MealFilter = {
     date: sp.date || undefined,

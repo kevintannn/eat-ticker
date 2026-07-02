@@ -6,6 +6,7 @@ import { Menu, Search, UtensilsCrossed } from "lucide-react";
 
 import { NAV_ITEMS } from "@/components/nav-items";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { LockButton } from "@/components/lock-button";
 import { CommandPalette, useCommandPalette } from "@/components/command-palette";
 import { Button } from "@/components/ui/button";
 import {
@@ -112,12 +113,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Button variant="ghost" size="icon" aria-label="Search" onClick={palette.open}>
               <Search className="size-5" />
             </Button>
+            <LockButton />
             <ThemeToggle />
           </div>
         </header>
 
         {/* Desktop top-right controls */}
         <div className="hidden items-center justify-end gap-1 border-b px-6 py-3 md:flex">
+          <LockButton />
           <ThemeToggle />
         </div>
 
